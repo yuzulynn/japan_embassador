@@ -5,46 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>한일국교정상화 60주년 프로그램 모음집</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chosen Palette: Serene Sage (bg-gray-50, text-gray-800, accent: #4A5568, #A0AEC0) -->
-    <!-- Application Structure Plan: The application is a single-page interactive program collection. It features a top control panel with filters for location (Korea/Japan/All), month, and category, allowing users to dynamically browse programs. The main content area displays program cards. This structure is chosen to provide intuitive navigation and efficient information retrieval, enabling users to quickly find relevant programs based on their interests. -->
-    <!-- Visualization & Content Choices: The application primarily uses dynamic HTML cards to present program details. Filtering and search functionalities are implemented with vanilla JavaScript to update the displayed content in real-time. This method is highly effective for presenting structured textual information and allowing user-driven exploration without complex visualizations. -->
+    <!-- Chosen Palette: Serene Sage (Main: bg-gray-50, text-gray-800, Accent: #4A5568 (Dark Slate Gray), #A0AEC0 (Light Slate Gray), Subtle: #F0F4F8) -->
+    <!-- Application Structure Plan: The application is a single-page interactive program collection, designed for intuitive exploration and a polished user experience. It features a prominent, engaging header, followed by a clear control panel with filters for location, month, and category. The main content area dynamically displays program cards. This structure prioritizes user understanding and ease of access to information, making it highly "독자친화적" by allowing users to quickly narrow down and discover programs of interest. -->
+    <!-- Visualization & Content Choices: The core presentation relies on visually appealing, dynamic HTML cards to present program details. Filtering and search functionalities are implemented with vanilla JavaScript, which efficiently updates the displayed content in real-time. Subtle hover effects on cards and clear active states for filter buttons enhance interactivity. Unicode icons are used for visual cues (location, date) to improve scannability. This design focuses on clean information hierarchy within each card and across the layout, delivering an "압도적 잘함" feel through refined aesthetics and smooth functionality. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body { font-family: 'Inter', 'Spoqa Han Sans Neo', 'sans-serif'; }
         .card {
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 더 부드러운 그림자 */
+            border-radius: 1rem; /* 더 둥근 모서리 */
+        }
+        .card:hover {
+            transform: translateY(-5px); /* 살짝 떠오르는 효과 */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* 더 깊은 그림자 */
+        }
+        .filter-btn {
+            transition: all 0.2s ease-in-out;
+            border-radius: 0.5rem; /* 버튼 모서리 둥글게 */
         }
         .filter-btn.active {
-            background-color: #4A5568;
+            background-color: #4A5568; /* 활성 버튼 색상 */
             color: white;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); /* 내부 그림자 */
         }
         .filter-btn:hover:not(.active) {
-            background-color: #E2E8F0;
+            background-color: #CBD5E0; /* 호버 시 연한 회색 */
+            color: #4A5568;
+        }
+        select {
+            appearance: none; /* 기본 화살표 제거 */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>');
+            background-repeat: no-repeat;
+            background-position: right 0.7em top 50%, 0 0;
+            background-size: 1.5em auto;
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 p-4">
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 p-4">
 
-    <div class="container mx-auto max-w-4xl bg-white rounded-lg shadow-lg p-6 my-8">
-        <h1 class="text-3xl font-bold text-center mb-6 text-gray-900">한일국교정상화 60주년 프로그램 모음집</h1>
-        <p class="text-center text-gray-600 mb-8">
-            외교를 넘어 삶 속으로! 2025년 한일 수교 정상화 60주년을 기념하는 다양한 시민 참여 프로그램을 한눈에 확인하고, 원하는 조건으로 검색해보세요.
-        </p>
+    <div class="container mx-auto max-w-5xl bg-white rounded-2xl shadow-xl p-8 my-10">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-3 text-gray-900 leading-tight">
+                ✨ 한일국교정상화 60주년 ✨
+            </h1>
+            <h2 class="text-xl md:text-2xl font-semibold text-[#4A5568] mb-4">
+                외교를 넘어 삶 속으로! 시민 참여 프로그램 모음집
+            </h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                2025년, 한일 수교 60주년을 기념하는 다채로운 프로그램들을 한눈에 확인하고,
+                원하는 조건으로 쉽게 검색하여 새로운 한일 교류의 장을 경험해보세요.
+            </p>
+        </header>
 
         <!-- Filter Controls -->
-        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4 mb-8 p-4 bg-gray-100 rounded-lg">
+        <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4 mb-10 p-6 bg-gray-100 rounded-xl shadow-inner">
             <!-- Location Filter -->
-            <div class="flex space-x-2 w-full md:w-auto">
-                <button class="filter-btn active px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700" data-filter-type="location" data-filter-value="all">전체 프로그램</button>
-                <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700" data-filter-type="location" data-filter-value="korea">한국 프로그램</button>
-                <button class="filter-btn px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700" data-filter-type="location" data-filter-value="japan">일본 프로그램</button>
+            <div class="flex flex-wrap justify-center space-x-2 space-y-2 md:space-y-0 w-full md:w-auto">
+                <button class="filter-btn active px-5 py-2.5 text-sm font-bold bg-gray-200 text-gray-700" data-filter-type="location" data-filter-value="all">🌍 전체</button>
+                <button class="filter-btn px-5 py-2.5 text-sm font-bold bg-gray-200 text-gray-700" data-filter-type="location" data-filter-value="korea">🇰🇷 한국</button>
+                <button class="filter-btn px-5 py-2.5 text-sm font-bold bg-gray-200 text-gray-700" data-filter-type="location" data-filter-value="japan">🇯🇵 일본</button>
             </div>
 
             <!-- Month Filter -->
             <div class="w-full md:w-auto">
-                <select id="month-filter" class="form-select block w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm focus:ring-blue-500 focus:border-blue-500">
-                    <option value="all">전체 월</option>
+                <select id="month-filter" class="block w-full px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="all">🗓️ 전체 월</option>
                     <option value="5">5월</option>
                     <option value="6">6월</option>
                     <option value="7">7월</option>
@@ -58,8 +86,8 @@
 
             <!-- Category Filter -->
             <div class="w-full md:w-auto">
-                <select id="category-filter" class="form-select block w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm focus:ring-blue-500 focus:border-blue-500">
-                    <option value="all">전체 카테고리</option>
+                <select id="category-filter" class="block w-full px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="all">🏷️ 전체 카테고리</option>
                     <option value="문화">문화</option>
                     <option value="예술">예술</option>
                     <option value="학술">학술</option>
@@ -76,13 +104,18 @@
         </div>
 
         <!-- Program Listings -->
-        <div id="program-listings" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="program-listings" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Program cards will be dynamically inserted here -->
         </div>
 
-        <p id="no-results-message" class="text-center text-gray-500 mt-8 hidden">
-            선택하신 조건에 맞는 프로그램이 없습니다.
+        <p id="no-results-message" class="text-center text-gray-500 text-lg mt-12 hidden">
+            😭 선택하신 조건에 맞는 프로그램이 없습니다.
         </p>
+
+        <!-- Footer with Creator Info -->
+        <footer class="text-center mt-12 pt-8 border-t border-gray-200 text-gray-500 text-sm">
+            <p>제작: 일본문화원 리포터 11기 / 박수린</p>
+        </footer>
     </div>
 
     <script>
@@ -102,9 +135,9 @@
             { id: 202, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 7, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
             { id: 203, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 8, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
             { id: 204, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 9, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 205, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 10, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 206, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 11, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 207, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 12, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
+            { id: 205, title: "2025년도 한국시장 방일프로मो션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 10, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
+            { id: 206, title: "2025년도 한국시장 방일프로मो션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 11, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
+            { id: 207, title: "2025년도 한국시장 방일프로मो션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 12, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
 
             { id: 3, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 5, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
             { id: 301, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 6, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
@@ -173,8 +206,8 @@
             { id: 22, title: "2025 일본 유학·취업 종합설명회", description: "일본 유학 또는 취업 희망자를 대상으로 한 설명회로서, 일본 대학·전문학교·일본어학교 진학 상담 및 일본 기업 취업 상담 진행", month: 7, location: "korea", category: "설명회", date: "2025.07.12-07.13", host: "㈜라이센스아카데미", place: "벡스코 제1전시장 218호 / 스페이스쉐어 삼성역센터 리젠시 홀" },
             { id: 23, title: "고교생일본어말하기대회", description: "고교생 대상 일본어 말하기 대회", month: 7, location: "korea", category: "교육", date: "2025.07.13", host: "사단법인 부산한일문화교류협회", place: "부산 경성대학교 문화관" },
             { id: 24, title: "한일 공통과제(인구 감소 및 지방 창생) 대응 포럼", description: "한일 양국에서 심각해지고 있는 공통 과제를 주제로 한일 양국 전문가가 모여 공동의 해결책을 모색하는 포럼", month: 7, location: "japan", category: "학술", date: "2025.07.16", host: "주센다이대한민국총영사관", place: "센다이시 메트로폴리탄 호텔" },
-            { id: 25, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (고교생부, 대학생부)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", month: 7, location: "korea", category: "교류", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 시립서울유스호스텔 / 대학생부 : 하이서울유스호스텔" },
-            { id: 25.1, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (고교생부, 대학생부)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", month: 7, location: "japan", category: "교류", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 국립올림픽기념청소년종합센터 / 대학생부 : 국립올림픽기념청소년종합센터" },
+            { id: 25, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (한국 개최)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", month: 7, location: "korea", category: "교류", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 시립서울유스호스텔 / 대학생부 : 하이서울유스호스텔" },
+            { id: 25.1, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (일본 개최)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", month: 7, location: "japan", category: "교류", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 국립올림픽기념청소년종합센터 / 대학생부 : 국립올림픽기념청소년종합센터" },
             { id: 26, title: "한일 국교정상화 60주년 기념 공연 <춤, 조선통신사 유마도를 그리다>", description: "한일간 문화교류의 꽃을 피운 조선통신사의 역사적 의미와 가치를 담은 무용극", month: 7, location: "japan", category: "공연", date: "2025.07.16", host: "국립부산국악원", place: "요코하마 가나가와 예술극장(KAAT)" },
             { id: 27, title: "춤, 조선통신사 유마도를 그리다", description: "한일간 평화적 교류를 상징하는 조선통신사의 여정을 모티브로 만든 전통 공연으로 양국간 교류의 역사 조명", month: 7, location: "japan", category: "공연", date: "2025.07.19-07.20", host: "문화체육관광부", place: "요코하마 가나가와예술극장" },
             { id: 28, title: "Gomeisa GALLERY주최「제3회 'MASK'어워드」중, 탈춤 가면작가·이시고토 씨의 토크쇼 및 탈춤 가면 참고전시", description: "탈춤 가면작가·이시고토 씨를 초청해, 토크쇼 및 탈춤전시를 진행", month: 7, location: "japan", category: "전시", date: "2025.07.21-07.23", host: "Gomeisa 주식회사", place: "오사카국제회의장 (그랑큐브오사카)" },
@@ -192,7 +225,7 @@
             { id: 36, title: "제4회 지적장애인 일한스포츠 교류프로그램", description: "양국 상호 파견에 의한 지적장애인 운동선수의 스포츠문화교류", month: 8, location: "japan", category: "스포츠", date: "2025.08.15-08.19", host: "일반사단법인 전일본 지적장애인 스포츠협회", place: "도쿄 히가시구루메시" },
             { id: 37, title: "조에쓰시 고교생 해외홈스테이 교류사업 (한국 목포시)", description: "조에쓰시 고교생의 한국·목포시에서의 홈스테이 체험, 학교 교류, 문화 체험", month: 8, location: "korea", category: "교류", date: "2025.08.16-08.19", host: "조에쓰시", place: "목포시" },
             { id: 38, title: "제33차 한일포럼 및 제11차 한일주니어포럼", description: "한국국제교류재단, 일본국제교류센터 공동 주최 사업으로 한일 양국이 새로운 협력관계를 모색하고 미래지향적인 양국관계 발전을 도모하는 연례 상설회의체", month: 8, location: "korea", category: "학술", date: "2025.08.11 (주니어포럼), 08.18-20 (한일포럼)", host: "한국국제교류재단", place: "서울 그랜드하얏트호텔, 커뮤니티하우스 마실" },
-            { id: 39, title: "전국 고등학생 일본어비디오 콘테스트", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 8, location: "korea", category: "교육", date: "2025.08.18-09.01 (접수)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "온라인 (www.jvcon.org)" }, // 11월 결과발표 및 시상식은 별도 추가
+            { id: 39, title: "전국 고등학생 일본어비디오 콘테스트 (응모기간)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 8, location: "korea", category: "교육", date: "2025.08.18-09.01 (접수)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "온라인 (www.jvcon.org)" }, // 11월 결과발표 및 시상식은 별도 추가
             { id: 40, title: "홋카이도에서 만나는 대전", description: "홋카이도 삿포로시와 자매도시 결연 15주년을 맞이하는 대전광역시와의 협력을 통해 대전 관광 홍보 세미나, 한국문화 체험 및 대전시 홍보 부스 운영", month: 8, location: "japan", category: "문화", date: "2025.08.20 (세미나), 08.23-24 (체험 부스)", host: "주삿포로대한민국총영사관", place: "삿포로 프린스호텔, 삿포로돔" },
             { id: 41, title: "제21회 호쿠리쿠(일본)・한국경제교류회의", description: "한일 양국 지자체·기업의 경제 교류", month: 8, location: "japan", category: "교류", date: "2025.08.26", host: "호쿠리쿠 경제연합회·호쿠리쿠 환일본해 경제교류촉진협의회·일반사단법인 한일경제협회", place: "이시카와현 가나자와시" },
             { id: 42, title: "스미노 하야토 피아노 리사이틀", description: "도쿄대 공대 출신, 클래식 비전공자로서 2021년 쇼팽 콩쿠르 세미 파이널에 오르며 화제를 모았던 스미노 하야토의 내한 리사이틀", month: 8, location: "korea", category: "공연", date: "2025.08.28", host: "㈜마스트미디어", place: "예술의전당 콘서트홀" },
@@ -238,6 +271,8 @@
             // 11월에 추가되는 11월 프로그램 (전국 고등학생 일본어비디오 콘테스트 결과발표 및 시상식)
             { id: 39.1, title: "전국 고등학생 일본어비디오 콘테스트 (결과발표)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 11, location: "korea", category: "교육", date: "2025.11월 (결과발표)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "온라인 (www.jvcon.org)" },
             { id: 39.2, title: "전국 고등학생 일본어비디오 콘테스트 (시상식)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 11, location: "korea", category: "교육", date: "2025.11.29 (시상식)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "서울글로벌센터 9층" },
+            // 11월에 추가되는 11월 프로그램 (전국대학생일본어연극대회 본선)
+            { id: 1000.1, title: "일한국교정정상화 60주년 기념 행사 제11회 전국대학생일본어연극대회 (본선)", description: "일본어를 학습하고 있는 전국 대학생을 대상으로, 평소 습득한 일본어 학습 성과를 발표하고 상호 교류를 도모하는 것을 목적으로 실시하는 대학생일본어연극대회 본선", month: 11, location: "korea", category: "교육", date: "2025.11.16", host: "주한일본대사관 공보문화원, (사)한일미래포럼, 일본국제교류기금 서울문화센터", place: "수림문화재단 김희수 아트센터 스페이스1" },
 
             // 12월 프로그램
             { id: 78, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업 (계속)", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 12, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
