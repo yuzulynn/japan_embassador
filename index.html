@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chosen Palette: Serene Sage (Main: bg-gray-50, text-gray-800, Accent: #4A5568 (Dark Slate Gray), #A0AEC0 (Light Slate Gray), Subtle: #F0F4F8) -->
     <!-- Application Structure Plan: The application is a single-page interactive program collection, designed for intuitive exploration and a polished user experience. It features a prominent, engaging header, followed by a clear control panel with filters for location, month, and category. The main content area dynamically displays program cards. This structure prioritizes user understanding and ease of access to information, making it highly "독자친화적" by allowing users to quickly narrow down and discover programs of interest. -->
-    <!-- Visualization & Content Choices: The core presentation relies on visually appealing, dynamic HTML cards to present program details. Filtering and search functionalities are implemented with vanilla JavaScript, which efficiently updates the displayed content in real-time. Subtle hover effects on cards and clear active states for filter buttons enhance interactivity. Unicode icons are used for visual cues (location, date) to improve scannability. This design focuses on clean information hierarchy within each card and across the layout, delivering an "압도적 잘함" feel through refined aesthetics and smooth functionality. -->
+    <!-- Visualization & Content Choices: The core presentation relies on visually appealing, dynamic HTML cards to present program details. Filtering and search functionalities are implemented with vanilla JavaScript to update the displayed content in real-time. Subtle hover effects on cards and clear active states for filter buttons enhance interactivity. Unicode icons are used for visual cues (location, date) to improve scannability. This design focuses on clean information hierarchy within each card and across the layout, delivering an "압도적 잘함" feel through refined aesthetics and smooth functionality. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body { font-family: 'Inter', 'Spoqa Han Sans Neo', 'sans-serif'; }
@@ -119,155 +119,167 @@
     </div>
 
     <script>
+        // Helper function to parse date strings and extract all active months
+        function getActiveMonths(dateString) {
+            const activeMonths = new Set();
+
+            // Regex to match YYYY.MM.DD-MM.DD or YYYY.MM-MM or MM.DD or MM월 or MM월~MM월
+            // This regex tries to capture various date formats to extract month numbers.
+            const matches = dateString.match(/(\d{1,2})\.(\d{1,2})(?:-(\d{1,2})\.(\d{1,2}))?|(\d{1,2})월(?:~(\d{1,2})월)?/g);
+
+            if (matches) {
+                matches.forEach(match => {
+                    // Handle MM.DD-MM.DD or MM.DD
+                    let dateParts = match.match(/(\d{1,2})\.(\d{1,2})/g);
+                    if (dateParts) {
+                        let startMonth = parseInt(dateParts[0].split('.')[0]);
+                        let endMonth = dateParts.length > 1 ? parseInt(dateParts[dateParts.length - 1].split('.')[0]) : startMonth;
+
+                        if (startMonth > endMonth) { // Spans across year end (e.g., Nov-Mar)
+                            for (let m = startMonth; m <= 12; m++) activeMonths.add(m);
+                            for (let m = 1; m <= endMonth; m++) activeMonths.add(m);
+                        } else {
+                            for (let m = startMonth; m <= endMonth; m++) activeMonths.add(m);
+                        }
+                    } else { // Handle MM월 or MM월~MM월
+                        let monthTextParts = match.match(/(\d{1,2})월(?:~(\d{1,2})월)?/);
+                        if (monthTextParts) {
+                            let startMonth = parseInt(monthTextParts[1]);
+                            let endMonth = monthTextParts[2] ? parseInt(monthTextParts[2]) : startMonth;
+                            
+                            if (startMonth > endMonth) { // Spans across year end (e.g., Nov-Mar)
+                                for (let m = startMonth; m <= 12; m++) activeMonths.add(m);
+                                for (let m = 1; m <= endMonth; m++) activeMonths.add(m);
+                            } else {
+                                for (let m = startMonth; m <= endMonth; m++) activeMonths.add(m);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Handle "or" cases or other complex date strings that might contain multiple distinct dates
+            if (dateString.includes(' or ') || dateString.includes(',')) {
+                const parts = dateString.split(/ (?:or|,) /).map(s => s.trim());
+                parts.forEach(part => {
+                    const monthMatch = part.match(/(\d{1,2})\./); // Try to get month from "MM.DD"
+                    if (monthMatch) {
+                        activeMonths.add(parseInt(monthMatch[1]));
+                    } else { // Try to get month from "MM월"
+                        const monthTextMatch = part.match(/(\d{1,2})월/);
+                        if (monthTextMatch) {
+                            activeMonths.add(parseInt(monthTextMatch[1]));
+                        }
+                    }
+                });
+            }
+            
+            // Specific broad date ranges that don't fit above regex easily (fallback/explicit handling)
+            if (dateString.includes('05.08-12.31')) { for (let m = 5; m <= 12; m++) activeMonths.add(m); }
+            if (dateString.includes('07-09')) { for (let m = 7; m <= 9; m++) activeMonths.add(m); }
+            if (dateString.includes('11-2026.03')) { for (let m = 11; m <= 12; m++) activeMonths.add(m); for (let m = 1; m <= 3; m++) activeMonths.add(m); }
+            if (dateString.includes('12-2026.01')) { activeMonths.add(12); activeMonths.add(1); }
+
+
+            return Array.from(activeMonths).sort((a, b) => a - b);
+        }
+
         const programs = [
             // 5월 시작 ~ 12월까지 지속되는 프로그램
-            { id: 1, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 5, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 101, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 6, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 102, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 7, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 103, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 8, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 104, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 9, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 105, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 10, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 106, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 11, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 107, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", month: 12, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-
-            { id: 2, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 5, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 201, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 6, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 202, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 7, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 203, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 8, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 204, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 9, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 205, title: "2025년도 한국시장 방일프로मो션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 10, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 206, title: "2025년도 한국시장 방일프로मो션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 11, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 207, title: "2025년도 한국시장 방일프로मो션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", month: 12, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-
-            { id: 3, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 5, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 301, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 6, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 302, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 7, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 303, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 8, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 304, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 9, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 305, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 10, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 306, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 11, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-            { id: 307, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", month: 12, location: "korea", category: "교류", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인" },
-
-            { id: 4, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", month: 5, location: "japan", category: "전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성" },
-            { id: 401, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", month: 6, location: "japan", category: "전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성" },
-            { id: 402, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", month: 7, location: "japan", category: "전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성" },
-            { id: 403, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", month: 8, location: "japan", category: "전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성" },
-            { id: 404, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", month: 9, location: "japan", category: "전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성" },
-            { id: 405, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", month: 10, location: "japan", category: "전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성" },
-
-            { id: 5, title: "한일 미술기획전 BLACK & WHITE", description: "한일 교류 60주년을 기념한 한국 작가 3명, 일본 작가 3명에 의한 '흑과 백'을 테마로 한 평면작품과 도예작품의 기획그룹전", month: 6, location: "japan", category: "예술", date: "2025.06.07-07.21", host: "KURA MONZEN Gallery", place: "교토부 KURA MONZEN Gallery" },
-            { id: 501, title: "한일 미술기획전 BLACK & WHITE", description: "한일 교류 60주년을 기념한 한국 작가 3명, 일본 작가 3명에 의한 '흑과 백'을 테마로 한 평면작품과 도예작품의 기획그룹전", month: 7, location: "japan", category: "예술", date: "2025.06.07-07.21", host: "KURA MONZEN Gallery", place: "교토부 KURA MONZEN Gallery" },
-
-            { id: 6, title: "야나기 무네요시와 전라 기행", description: "야나기 무네요시의 생애를 통한 조선 민예 특별전 및 심포지엄 개최", month: 6, location: "japan", category: "학술", date: "2025.06.16-08.02", host: "주일한국문화원, 일본민예관", place: "주일한국문화원 갤러리 MI" },
-            { id: 601, title: "야나기 무네요시와 전라 기행", description: "야나기 무네요시의 생애를 통한 조선 민예 특별전 및 심포지엄 개최", month: 7, location: "japan", category: "학술", date: "2025.06.16-08.02", host: "주일한국문화원, 일본민예관", place: "주일한국문화원 갤러리 MI" },
-            { id: 602, title: "야나기 무네요시와 전라 기행", description: "야나기 무네요시의 생애를 통한 조선 민예 특별전 및 심포지엄 개최", month: 8, location: "japan", category: "학술", date: "2025.06.16-08.02", host: "주일한국문화원, 일본민예관", place: "주일한국문화원 갤러리 MI" },
-
-            { id: 7, title: "한국대학생 방일단 (제1~2단)", description: "한국의 대학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", month: 6, location: "japan", category: "교류", date: "2025.06.24-07.02", host: "공익재단법인 일한문화교류기금", place: "후쿠오카현, 나가사키현, 구마모토현" },
-            { id: 701, title: "한국대학생 방일단 (제1~2단)", description: "한국의 대학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", month: 7, location: "japan", category: "교류", date: "2025.06.24-07.02", host: "공익재단법인 일한문화교류기금", place: "후쿠오카현, 나가사키현, 구마모토현" },
-
-            { id: 8, title: "WAY MAKERS: 미래를 여는 다음세대의 발걸음", description: "한일 대학생 문화예술교류행사(대마도 탐방) 및 지역 연계 봉사활동", month: 6, location: "japan", category: "교류", date: "2025.06.24-07.04", host: "신한대학교", place: "나가사키현 쓰시마시 일대" },
-            { id: 801, title: "WAY MAKERS: 미래를 여는 다음세대의 발걸음", description: "한일 대학생 문화예술교류행사(대마도 탐방) 및 지역 연계 봉사활동", month: 7, location: "japan", category: "교류", date: "2025.06.24-07.04", host: "신한대학교", place: "나가사키현 쓰시마시 일대" },
-
-            { id: 9, title: "연극 ‘타인’ 공연", description: "일본 전문인 극단 ‘58번 국도’의 연극 공연 차세대 일본 희곡 번역가 발굴 프로그램 연계", month: 6, location: "korea", category: "공연", date: "2025.06.26-07.06", host: "일본국제교류기금(The Japan Foundation) 서울문화센터", place: "나온시어터" },
-            { id: 901, title: "연극 ‘타인’ 공연", description: "일본 전문인 극단 ‘58번 국도’의 연극 공연 차세대 일본 희곡 번역가 발굴 프로그램 연계", month: 7, location: "korea", category: "공연", date: "2025.06.26-07.06", host: "일본국제교류기금(The Japan Foundation) 서울문화센터", place: "나온시어터" },
-
-            // 6월 시작 ~ 8월까지 지속되는 프로그램 (새로 추가된 것)
-            { id: 1000, title: "일한국교정정상화 60주년 기념 행사 제11회 전국대학생일본어연극대회 (응모기간)", description: "일본어를 학습하고 있는 전국 대학생을 대상으로, 평소 습득한 일본어 학습 성과를 발표하고 상호 교류를 도모하는 것을 목적으로 실시하는 대학생일본어연극대회. 8월 20일(수)에 본선 진출팀을 발표 예정.", month: 6, location: "korea", category: "교육", date: "2025.06.23-08.08 (응모기간)", host: "주한일본대사관 공보문화원, (사)한일미래포럼, 일본국제교류기금 서울문화센터", place: "온라인" },
-            { id: 1001, title: "일한국교정정상화 60주년 기념 행사 제11회 전국대학생일본어연극대회 (응모기간)", description: "일본어를 학습하고 있는 전국 대학생을 대상으로, 평소 습득한 일본어 학습 성과를 발표하고 상호 교류를 도모하는 것을 목적으로 실시하는 대학생일본어연극대회. 8월 20일(수)에 본선 진출팀을 발표 예정.", month: 7, location: "korea", category: "교육", date: "2025.06.23-08.08 (응모기간)", host: "주한일본대사관 공보문화원, (사)한일미래포럼, 일본국제교류기금 서울문화센터", place: "온라인" },
-            { id: 1002, title: "일한국교정정상화 60주년 기념 행사 제11회 전국대학생일본어연극대회 (응모기간)", description: "일본어를 학습하고 있는 전국 대학생을 대상으로, 평소 습득한 일본어 학습 성과를 발표하고 상호 교류를 도모하는 것을 목적으로 실시하는 대학생일본어연극대회. 8월 20일(수)에 본선 진출팀을 발표 예정.", month: 8, location: "korea", category: "교육", date: "2025.06.23-08.08 (응모기간)", host: "주한일본대사관 공보문화원, (사)한일미래포럼, 일본국제교류기금 서울문화센터", place: "온라인" },
-            // 본선은 11월에 추가
-            { id: 1003, title: "2025 히라가나 가타카나 디자인 콘테스트 (응모기간)", description: "중학생, 고등학생 및 청소년을 대상으로 일본어 문자(히라가나, 가타카나)를 모티브로 창작한 디자인 콘테스트를 개최한다.", month: 6, location: "korea", category: "예술", date: "2025.06.23-09.15 (응모기간)", host: "주한일본대사관 공보문화원, 일본국제교류기금 서울문화센터", place: "온라인" },
-            { id: 1004, title: "2025 히라가나 가타카나 디자인 콘테스트 (응모기간)", description: "중학생, 고등학생 및 청소년을 대상으로 일본어 문자(히라가나, 가타카나)를 모티브로 창작한 디자인 콘테스트를 개최한다.", month: 7, location: "korea", category: "예술", date: "2025.06.23-09.15 (응모기간)", host: "주한일본대사관 공보문화원, 일본국제교류기금 서울문화센터", place: "온라인" },
-            { id: 1005, title: "2025 히라가나 가타카나 디자인 콘테스트 (응모기간)", description: "중학생, 고등학생 및 청소년을 대상으로 일본어 문자(히라가나, 가타카나)를 모티브로 창작한 디자인 콘테스트를 개최한다.", month: 8, location: "korea", category: "예술", date: "2025.06.23-09.15 (응모기간)", host: "주한일본대사관 공보문화원, 일본국제교류기금 서울문화센터", place: "온라인" },
-            { id: 1006, title: "2025 히라가나 가타카나 디자인 콘테스트 (응모기간)", description: "중학생, 고등학생 및 청소년을 대상으로 일본어 문자(히라가나, 가타카나)를 모티브로 창작한 디자인 콘테스트를 개최한다.", month: 9, location: "korea", category: "예술", date: "2025.06.23-09.15 (응모기간)", host: "주한일본대사관 공보문화원, 일본국제교류기금 서울문화센터", place: "온라인" },
+            { id: 1, title: "2025년도 한국시장 미디어 및 인플루언서 초청사업", description: "한국 미디어·인스타그래머의 일본여행의 매력 발신", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인", location: "korea", category: "교류" },
+            { id: 2, title: "2025년도 한국시장 방일프로모션 사업", description: "일본 도시의 매력에 초점을 맞춘 숏 동영상 제작", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인", location: "korea", category: "교류" },
+            { id: 3, title: "2025년도 한국시장 공동광고 사업", description: "항공사·여행사와 연계한 일한 취항노선 캠페인", date: "2025.05.08-12.31", host: "독립행정법인 국제관광진흥기구 서울사무소", place: "온라인", location: "korea", category: "교류" },
+            { id: 4, title: "한일 국교정상화 60주년 기념 미니전시 「나고야성과 한반도-출토유물의 공통점-」", description: "나고야성에서 토출한 한반도와 인연이 깊은 유물을 나고야 성내에서 전시", date: "2025.05.22-10.31", host: "나고야시 관광문화교류국 나고야성 조사연구센터", place: "아이치현 나고야성", location: "japan", category: "전시" },
+            
+            // 6월 프로그램
+            { id: 5, title: "한일 미술기획전 BLACK & WHITE", description: "한일 교류 60주년을 기념한 한국 작가 3명, 일본 작가 3명에 의한 '흑과 백'을 테마로 한 평면작품과 도예작품의 기획그룹전", date: "2025.06.07-07.21", host: "KURA MONZEN Gallery", place: "교토부 KURA MONZEN Gallery", location: "japan", category: "예술" },
+            { id: 6, title: "야나기 무네요시와 전라 기행", description: "야나기 무네요시의 생애를 통한 조선 민예 특별전 및 심포지엄 개최", date: "2025.06.16-08.02", host: "주일한국문화원, 일본민예관", place: "주일한국문화원 갤러리 MI", location: "japan", category: "학술" },
+            { id: 7, title: "한국대학생 방일단 (제1~2단)", description: "한국의 대학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", date: "2025.06.24-07.02", host: "공익재단법인 일한문화교류기금", place: "후쿠오카현, 나가사키현, 구마모토현", location: "japan", category: "교류" },
+            { id: 8, title: "WAY MAKERS: 미래를 여는 다음세대의 발걸음", description: "한일 대학생 문화예술교류행사(대마도 탐방) 및 지역 연계 봉사활동", date: "2025.06.24-07.04", host: "신한대학교", place: "나가사키현 쓰시마시 일대", location: "japan", category: "교류" },
+            { id: 9, title: "연극 ‘타인’ 공연", description: "일본 전문인 극단 ‘58번 국도’의 연극 공연 차세대 일본 희곡 번역가 발굴 프로그램 연계", date: "2025.06.26-07.06", host: "일본국제교류기금(The Japan Foundation) 서울문화센터", place: "나온시어터", location: "korea", category: "공연" },
+            { id: 1000, title: "일한국교정정상화 60주년 기념 행사 제11회 전국대학생일본어연극대회 (응모기간)", description: "일본어를 학습하고 있는 전국 대학생을 대상으로, 평소 습득한 일본어 학습 성과를 발표하고 상호 교류를 도모하는 것을 목적으로 실시하는 대학생일본어연극대회. 8월 20일(수)에 본선 진출팀을 발표 예정.", date: "2025.06.23-08.08 (응모기간)", host: "주한일본대사관 공보문화원, (사)한일미래포럼, 일본국제교류기금 서울문화센터", place: "온라인", location: "korea", category: "교육" },
+            { id: 1003, title: "2025 히라가나 가타카나 디자인 콘테스트", description: "중학생, 고등학생 및 청소년을 대상으로 일본어 문자(히라가나, 가타카나)를 모티브로 창작한 디자인 콘테스트를 개최한다.", date: "2025.06.23-09.15 (응모기간)", host: "주한일본대사관 공보문화원, 일본국제교류기금 서울문화센터", place: "온라인", location: "korea", category: "예술" },
 
             // 7월 프로그램
-            { id: 10, title: "주한 일본계기업 인턴십 실습프로그램", description: "주한 일본계기업에 한국의 대학생 파견", month: 7, location: "korea", category: "교육", date: "2025.07-09", host: "일반재단법인 일한산업기술협력재단", place: "서울 시내 일본계 기업" },
-            { id: 100, title: "주한 일본계기업 인턴십 실습프로그램", description: "주한 일본계기업에 한국의 대학생 파견", month: 8, location: "korea", category: "교육", date: "2025.07-09", host: "일반재단법인 일한산업기술협력재단", place: "서울 시내 일본계 기업" },
-            { id: 1007, title: "주한 일본계기업 인턴십 실습프로그램", description: "주한 일본계기업에 한국의 대학생 파견", month: 9, location: "korea", category: "교육", date: "2025.07-09", host: "일반재단법인 일한산업기술협력재단", place: "서울 시내 일본계 기업" },
-
-            { id: 11, title: "한일 국교정상화 60주년 기념 한국 무악의 향연", description: "한국의 전통 연희단을 섭외하여 사물놀이, 판극 및 퓨전국악 퍼포먼스를 선보이고, 삿포로 내 유명 일본 타악기 공연단과 협연하는 문화행사 개최", month: 7, location: "japan", category: "문화", date: "2025.07.01", host: "주삿포로총영사관", place: "삿포로시 교육문화회관" },
-            { id: 12, title: "“한국 대중문화와 K-Beauty의 확산” 강연회", description: "한일 양국 강사 초청 강연회 개최 K-Beauty 산업의 성장 배경과 확산 전략 한국 대중문화가 K-Beauty 산업의 확산에 미친 영향", month: 7, location: "japan", category: "학술", date: "2025.07.01", host: "주센다이대한민국총영사관", place: "센다이시 메트로폴리탄 호텔" },
-            { id: 13, title: "한일 국교정상화 60주년 기념 ‘모노드라마 라 칼라스’", description: "쇼프라노 정희경 주연, 모노드라마 형식의 오페라 공연", month: 7, location: "japan", category: "공연", date: "2025.07.02", host: "주일한국문화원", place: "주일한국문화원 한마당 홀" },
-            { id: 14, title: "신화의 무도(舞蹈): 韓日의 서사", description: "한국 창작무용단 LNY dance group와 일본연극단 코마츠좌의 합동 공연", month: 7, location: "japan", category: "예술", date: "2025.07.03", host: "LNY dance group", place: "큐리안(시나가와 구립 종합구민회관)" },
-            { id: 15, title: "제14회 한일문화카라반 in 구마모토", description: "한일 양국 전통 문화공연 및 울산광역시, 구마모토시, 한국관광공사 후쿠오카지사 등 홍보 부스 운영", month: 7, location: "japan", category: "문화", date: "2025.07.04", host: "주일본대한민국대사관", place: "구마모토시 시민회관" },
-            { id: 1008, title: "일한 국교정상화 60주년 기념사업 제12회 한일포토콘테스트 (응모기간)", description: "‘한일 양국의 매력’을 테마로 촬영한 사진을 응모하는 ‘한일포토콘테스트’", month: 7, location: "korea", category: "예술", date: "2025.07.01-08.31 (응모기간)", host: "주한일본대사관 공보문화원, 나가사키현, 시즈오카현, 에히메현, 서울관광재단", place: "온라인" },
-            { id: 1009, title: "일한 국교정상화 60주년 기념사업 제12회 한일포토콘테스트 (응모기간)", description: "‘한일 양국의 매력’을 테마로 촬영한 사진을 응모하는 ‘한일포토콘테스트’", month: 8, location: "korea", category: "예술", date: "2025.07.01-08.31 (응모기간)", host: "주한일본대사관 공보문화원, 나가사키현, 시즈오카현, 에히메현, 서울관광재단", place: "온라인" },
-            // 전시회는 12월에 추가
-
-            { id: 1010, title: "일한 국교정상화 60주년 기념 ‘다도 우라센케 곤니치안 교테 나라 소큐 선생님 강연 및 데몬스트레이션’", description: "일본의 전통문화인 다도를 소개하는 행사. 나라 소큐 선생님을 초청하여 강연 및 데몬스트레이션을 개최한다.", month: 7, location: "korea", category: "문화", date: "2025.07.09", host: "주한일본대사관 공보문화원", place: "주한일본대사관 공보문화원 다목적홀" },
-
-            { id: 16, title: "한일공예국제교류전", description: "한국 공예를 교토에 소개하는 전시회(출품작품 66점)", month: 7, location: "japan", category: "예술", date: "2025.07.07-07.13", host: "사단법인 한국공예가협회", place: "교토문화박물관" },
-            { id: 17, title: "국인 글로벌 멘토링", description: "일본 내 한국학교와 한글학교에 재학 중인 재일교포, 일본인 학생들을 대상으로, 한국어, 한국문화, 한국대학 소개 등 교육기부 활동", month: 7, location: "japan", category: "교육", date: "2025.07.07-07.25", host: "국인", place: "도쿄, 오사카, 교토, 나고야" },
-            { id: 18, title: "주한공관선발 한국청년방일단 (제1단)", description: "한국의 대학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", month: 7, location: "japan", category: "교류", date: "2025.07.08-07.18", host: "공익재단법인 일한문화교류기금", place: "미야기현, 후쿠시마현, 홋카이도" },
-            { id: 19, title: "한일 국교정상화 60주년 기념 한일청년파트너십", description: "한일 양국 대학생·대학원생이 모여 2박 3일간 그룹별 주제 토론 및 발표", month: 7, location: "korea", category: "교류", date: "2025.07.11-07.13", host: "한일청년파트너십", place: "서울시립유스호스텔" },
-            { id: 20, title: "국립합창단 기획공연 - 한일 국교정상화 60주년 기념음악회", description: "합창: 국립합창단(지휘: 민인기) 협연: 뉴재팬필하모닉, 오사카교향악단 연주곡: Missa in Tempore belli(하이든), 한국 가곡 및 일본 민요", month: 7, location: "japan", category: "공연", date: "2025.07.11/07.15", host: "국립합창단", place: "도쿄 오페라시티 콘서트홀 / 오사카 더심포니홀" },
-            { id: 21, title: "숄츠와 한국 안무가", description: "도쿄시티·발레단과 한국 국립발레단의 공동공연", month: 7, location: "japan", category: "예술", date: "2025.07.12-07.13", host: "공익재단법인 도쿄시티·발레단", place: "에토공회당(티아라 강당) 대홀" },
-            { id: 22, title: "2025 일본 유학·취업 종합설명회", description: "일본 유학 또는 취업 희망자를 대상으로 한 설명회로서, 일본 대학·전문학교·일본어학교 진학 상담 및 일본 기업 취업 상담 진행", month: 7, location: "korea", category: "설명회", date: "2025.07.12-07.13", host: "㈜라이센스아카데미", place: "벡스코 제1전시장 218호 / 스페이스쉐어 삼성역센터 리젠시 홀" },
-            { id: 23, title: "고교생일본어말하기대회", description: "고교생 대상 일본어 말하기 대회", month: 7, location: "korea", category: "교육", date: "2025.07.13", host: "사단법인 부산한일문화교류협회", place: "부산 경성대학교 문화관" },
-            { id: 24, title: "한일 공통과제(인구 감소 및 지방 창생) 대응 포럼", description: "한일 양국에서 심각해지고 있는 공통 과제를 주제로 한일 양국 전문가가 모여 공동의 해결책을 모색하는 포럼", month: 7, location: "japan", category: "학술", date: "2025.07.16", host: "주센다이대한민국총영사관", place: "센다이시 메트로폴리탄 호텔" },
-            { id: 25, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (한국 개최)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", month: 7, location: "korea", category: "교류", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 시립서울유스호스텔 / 대학생부 : 하이서울유스호스텔" },
-            { id: 25.1, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (일본 개최)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", month: 7, location: "japan", category: "교류", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 국립올림픽기념청소년종합센터 / 대학생부 : 국립올림픽기념청소년종합센터" },
-            { id: 26, title: "한일 국교정상화 60주년 기념 공연 <춤, 조선통신사 유마도를 그리다>", description: "한일간 문화교류의 꽃을 피운 조선통신사의 역사적 의미와 가치를 담은 무용극", month: 7, location: "japan", category: "공연", date: "2025.07.16", host: "국립부산국악원", place: "요코하마 가나가와 예술극장(KAAT)" },
-            { id: 27, title: "춤, 조선통신사 유마도를 그리다", description: "한일간 평화적 교류를 상징하는 조선통신사의 여정을 모티브로 만든 전통 공연으로 양국간 교류의 역사 조명", month: 7, location: "japan", category: "공연", date: "2025.07.19-07.20", host: "문화체육관광부", place: "요코하마 가나가와예술극장" },
-            { id: 28, title: "Gomeisa GALLERY주최「제3회 'MASK'어워드」중, 탈춤 가면작가·이시고토 씨의 토크쇼 및 탈춤 가면 참고전시", description: "탈춤 가면작가·이시고토 씨를 초청해, 토크쇼 및 탈춤전시를 진행", month: 7, location: "japan", category: "전시", date: "2025.07.21-07.23", host: "Gomeisa 주식회사", place: "오사카국제회의장 (그랑큐브오사카)" },
-            { id: 29, title: "주한공관선발 한국청년방일단 (제2~3단)", description: "한국 고등학생을 초청해, 동일본대지진으로부터의 복구 및 방재교육 등을 테마로 한 교류를 실시", month: 7, location: "japan", category: "교류", date: "2025.07.22-07.30", host: "공익재단법인 일한문화교류기금", place: "도쿄도, 미야기현" },
-            { id: 30, title: "제28회 한일고교생교류캠프", description: "한일 고교생이 합숙하면서 소셜벤처, 산업 관광 분야 기업 탐방 및 CEO와의 만남, 4차산업체험을 바탕으로 비즈니스를 기획하고 사업설명회를 진행하는 실물경제 교육 프로그램", month: 7, location: "korea", category: "교육", date: "2025.07.31-08.03", host: "사단법인 한일경제협회", place: "하이서울유스호스텔" },
+            { id: 10, title: "주한 일본계기업 인턴십 실습프로그램", description: "주한 일본계기업에 한국의 대학생 파견", date: "2025.07-09", host: "일반재단법인 일한산업기술협력재단", place: "서울 시내 일본계 기업", location: "korea", category: "교육" },
+            { id: 11, title: "한일 국교정상화 60주년 기념 한국 무악의 향연", description: "한국의 전통 연희단을 섭외하여 사물놀이, 판극 및 퓨전국악 퍼포먼스를 선보이고, 삿포로 내 유명 일본 타악기 공연단과 협연하는 문화행사 개최", date: "2025.07.01", host: "주삿포로총영사관", place: "삿포로시 교육문화회관", location: "japan", category: "문화" },
+            { id: 12, title: "“한국 대중문화와 K-Beauty의 확산” 강연회", description: "한일 양국 강사 초청 강연회 개최 K-Beauty 산업의 성장 배경과 확산 전략 한국 대중문화가 K-Beauty 산업의 확산에 미친 영향", date: "2025.07.01", host: "주센다이대한민국총영사관", place: "센다이시 메트로폴리탄 호텔", location: "japan", category: "학술" },
+            { id: 13, title: "한일 국교정상화 60주년 기념 ‘모노드라마 라 칼라스’", description: "쇼프라노 정희경 주연, 모노드라마 형식의 오페라 공연", date: "2025.07.02", host: "주일한국문화원", place: "주일한국문화원 한마당 홀", location: "japan", category: "공연" },
+            { id: 14, title: "신화의 무도(舞蹈): 韓日의 서사", description: "한국 창작무용단 LNY dance group와 일본연극단 코마츠좌의 합동 공연", date: "2025.07.03", host: "LNY dance group", place: "큐리안(시나가와 구립 종합구민회관)", location: "japan", category: "예술" },
+            { id: 15, title: "제14회 한일문화카라반 in 구마모토", description: "한일 양국 전통 문화공연 및 울산광역시, 구마모토시, 한국관광공사 후쿠오카지사 등 홍보 부스 운영", date: "2025.07.04", host: "주일본대한민국대사관", place: "구마모토시 시민회관", location: "japan", category: "문화" },
+            { id: 1008, title: "일한 국교정상화 60주년 기념사업 제12회 한일포토콘테스트 (응모기간)", description: "‘한일 양국의 매력’을 테마로 촬영한 사진을 응모하는 ‘한일포토콘테스트’", date: "2025.07.01-08.31 (응모기간)", host: "주한일본대사관 공보문화원, 나가사키현, 시즈오카현, 에히메현, 서울관광재단", place: "온라인", location: "korea", category: "예술" },
+            { id: 1010, title: "일한 국교정상화 60주년 기념 ‘다도 우라센케 곤니치안 교테 나라 소큐 선생님 강연 및 데몬스트레이션’", description: "일본의 전통문화인 다도를 소개하는 행사. 나라 소큐 선생님을 초청하여 강연 및 데몬스트레이션을 개최한다.", date: "2025.07.09", host: "주한일본대사관 공보문화원", place: "주한일본대사관 공보문화원 다목적홀", location: "korea", category: "문화" },
+            { id: 16, title: "한일공예국제교류전", description: "한국 공예를 교토에 소개하는 전시회(출품작품 66점)", date: "2025.07.07-07.13", host: "사단법인 한국공예가협회", place: "교토문화박물관", location: "japan", category: "예술" },
+            { id: 17, title: "국인 글로벌 멘토링", description: "일본 내 한국학교와 한글학교에 재학 중인 재일교포, 일본인 학생들을 대상으로, 한국어, 한국문화, 한국대학 소개 등 교육기부 활동", date: "2025.07.07-07.25", host: "국인", place: "도쿄, 오사카, 교토, 나고야", location: "japan", category: "교육" },
+            { id: 18, title: "주한공관선발 한국청년방일단 (제1단)", description: "한국의 대학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", date: "2025.07.08-07.18", host: "공익재단법인 일한문화교류기금", place: "미야기현, 후쿠시마현, 홋카이도", location: "japan", category: "교류" },
+            { id: 19, title: "한일 국교정상화 60주년 기념 한일청년파트너십", description: "한일 양국 대학생·대학원생이 모여 2박 3일간 그룹별 주제 토론 및 발표", date: "2025.07.11-07.13", host: "한일청년파트너십", place: "서울시립유스호스텔", location: "korea", category: "교류" },
+            { id: 20, title: "국립합창단 기획공연 - 한일 국교정상화 60주년 기념음악회", description: "합창: 국립합창단(지휘: 민인기) 협연: 뉴재팬필하모닉, 오사카교향악단 연주곡: Missa in Tempore belli(하이든), 한국 가곡 및 일본 민요", date: "2025.07.11/07.15", host: "국립합창단", place: "도쿄 오페라시티 콘서트홀 / 오사카 더심포니홀", location: "japan", category: "공연" },
+            { id: 21, title: "숄츠와 한국 안무가", description: "도쿄시티·발레단과 한국 국립발레단의 공동공연", date: "2025.07.12-07.13", host: "공익재단법인 도쿄시티·발레단", place: "에토공회당(티아라 강당) 대홀", location: "japan", category: "예술" },
+            { id: 22, title: "2025 일본 유학·취업 종합설명회", description: "일본 유학 또는 취업 희망자를 대상으로 한 설명회로서, 일본 대학·전문학교·일본어학교 진학 상담 및 일본 기업 취업 상담 진행", date: "2025.07.12-07.13", host: "㈜라이센스아카데미", place: "벡스코 제1전시장 218호 / 스페이스쉐어 삼성역센터 리젠시 홀", location: "korea", category: "설명회" },
+            { id: 23, title: "고교생일본어말하기대회", description: "고교생 대상 일본어 말하기 대회", date: "2025.07.13", host: "사단법인 부산한일문화교류협회", place: "부산 경성대학교 문화관", location: "korea", category: "교육" },
+            { id: 24, title: "한일 공통과제(인구 감소 및 지방 창생) 대응 포럼", description: "한일 양국에서 심각해지고 있는 공통 과제를 주제로 한일 양국 전문가가 모여 공동의 해결책을 모색하는 포럼", date: "2025.07.16", host: "주센다이대한민국총영사관", place: "센다이시 메트로폴리탄 호텔", location: "japan", category: "학술" },
+            { id: 25, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (한국 개최)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 시립서울유스호스텔 / 대학생부 : 하이서울유스호스텔", location: "korea", category: "교류" },
+            { id: 25.1, title: "2025년 한일 청소년 교류캠프 in Seoul & in Tokyo (일본 개최)", description: "한일 고등학생과 대학생이 동일 장소에 숙박하며 대화, 토론, 게임, 노래, 스포츠 등을 통해 서로의 생각을 이해하고 미래를 살아갈 청소년들의 고민과 과제를 찾아 토론함. 대학 교수로 구성된 평가단이 학생들의 토론 내용 등을 정리하여 대외 발표문안을 작성함", date: "2025.07.16-08.22", host: "사단법인 한일협회(대표: 송부영)", place: "고교생부 : 국립올림픽기념청소년종합센터 / 대학생부 : 국립올림픽기념청소년종합센터", location: "japan", category: "교류" },
+            { id: 26, title: "한일 국교정상화 60주년 기념 공연 <춤, 조선통신사 유마도를 그리다>", description: "한일간 문화교류의 꽃을 피운 조선통신사의 역사적 의미와 가치를 담은 무용극", date: "2025.07.16", host: "국립부산국악원", place: "요코하마 가나가와 예술극장(KAAT)", location: "japan", category: "공연" },
+            { id: 27, title: "춤, 조선통신사 유마도를 그리다", description: "한일간 평화적 교류를 상징하는 조선통신사의 여정을 모티브로 만든 전통 공연으로 양국간 교류의 역사 조명", date: "2025.07.19-07.20", host: "문화체육관광부", place: "요코하마 가나가와예술극장", location: "japan", category: "공연" },
+            { id: 28, title: "Gomeisa GALLERY주최「제3회 'MASK'어워드」중, 탈춤 가면작가·이시고토 씨의 토크쇼 및 탈춤 가면 참고전시", description: "탈춤 가면작가·이시고토 씨를 초청해, 토크쇼 및 탈춤전시를 진행", date: "2025.07.21-07.23", host: "Gomeisa 주식회사", place: "오사카국제회의장 (그랑큐브오사카)", location: "japan", category: "전시" },
+            { id: 29, title: "주한공관선발 한국청년방일단 (제2~3단)", description: "한국 고등학생을 초청해, 동일본대지진으로부터의 복구 및 방재교육 등을 테마로 한 교류를 실시", date: "2025.07.22-07.30", host: "공익재단법인 일한문화교류기금", place: "도쿄도, 미야기현", location: "japan", category: "교류" },
+            { id: 30, title: "제28회 한일고교생교류캠프", description: "한일 고교생이 합숙하면서 소셜벤처, 산업 관광 분야 기업 탐방 및 CEO와의 만남, 4차산업체험을 바탕으로 비즈니스를 기획하고 사업설명회를 진행하는 실물경제 교육 프로그램", date: "2025.07.31-08.03", host: "사단법인 한일경제협회", place: "하이서울유스호스텔", location: "korea", category: "교육" },
             // 8월 프로그램
-            { id: 31, title: "2025 케이팝 커버댄스 페스티벌 in Japan", description: "일본 현지인 대상 케이팝 커버댄스 경연대회로 케이팝 콘텐츠를 통한 한일간 우호적 문화교류를 긍정적으로 표현", month: 8, location: "japan", category: "공연", date: "2025.08.02", host: "문화체육관광부", place: "쿨재팬파크오사카WW홀" },
-            { id: 32, title: "청소년 한일 음악교류회", description: "한일 양국 청소년이 오사카에서 만나 음악 교류 및 공연", month: 8, location: "japan", category: "공연", date: "2025.08.03", host: "SPIELRAUM (슈필라움)", place: "오사카 이즈미시 커뮤니티센터 다목적홀" },
-            { id: 33, title: "조선통신사 네트워크 (쓰시마)", description: "이즈하라항 축제 특별공연, 조선통신사 행렬 재현, 친서 교환식", month: 8, location: "japan", category: "문화", date: "2025.08.03-04", host: "부산문화재단", place: "쓰시마" },
-            { id: 33.1, title: "조선통신사 네트워크 (시모노세키)", description: "바칸축제, 조선통신사 행렬 재현, 문화교류공연, 국서교환식", month: 8, location: "japan", category: "문화", date: "2025.08.23-24", host: "부산문화재단", place: "시모노세키" },
-            { id: 33.2, title: "조선통신사 네트워크 (시즈오카)", description: "조선통신사 행렬 재현", month: 10, location: "japan", category: "문화", date: "2025.10.18-19", host: "부산문화재단", place: "시즈오카" },
-            { id: 34, title: "제29회 한일 청소년 하계 스포츠 교류 (한국 개최)", description: "한일 양국이 초중학생을 상호 파견하는 스포츠 교류", month: 8, location: "korea", category: "스포츠", date: "2025.08.03-08", host: "공익재단법인 일본스포츠협회", place: "전라북도 (한국)" },
-            { id: 34.1, title: "제29회 한일 청소년 하계 스포츠 교류 (일본 개최)", description: "한일 양국이 초중학생을 상호 파견하는 스포츠 교류", month: 8, location: "japan", category: "스포츠", date: "2025.08.17-22", host: "공익재단법인 일본스포츠협회", place: "기후현 (일본)" },
-            { id: 35, title: "미야기현 한일친선협회, 대한민국 민단 주최 볼링대회", description: "재외동포 가족 세대와 미야기현 한일친선협회 회원들 간 스포츠 교류", month: 8, location: "japan", category: "스포츠", date: "2025.08.15", host: "재일본대한민국민단 미야기현 지방본부, 미야기현 한일친선협회", place: "볼 선샤인 센다이" },
-            { id: 36, title: "제4회 지적장애인 일한스포츠 교류프로그램", description: "양국 상호 파견에 의한 지적장애인 운동선수의 스포츠문화교류", month: 8, location: "japan", category: "스포츠", date: "2025.08.15-08.19", host: "일반사단법인 전일본 지적장애인 스포츠협회", place: "도쿄 히가시구루메시" },
-            { id: 37, title: "조에쓰시 고교생 해외홈스테이 교류사업 (한국 목포시)", description: "조에쓰시 고교생의 한국·목포시에서의 홈스테이 체험, 학교 교류, 문화 체험", month: 8, location: "korea", category: "교류", date: "2025.08.16-08.19", host: "조에쓰시", place: "목포시" },
-            { id: 38, title: "제33차 한일포럼 및 제11차 한일주니어포럼", description: "한국국제교류재단, 일본국제교류센터 공동 주최 사업으로 한일 양국이 새로운 협력관계를 모색하고 미래지향적인 양국관계 발전을 도모하는 연례 상설회의체", month: 8, location: "korea", category: "학술", date: "2025.08.11 (주니어포럼), 08.18-20 (한일포럼)", host: "한국국제교류재단", place: "서울 그랜드하얏트호텔, 커뮤니티하우스 마실" },
-            { id: 39, title: "전국 고등학생 일본어비디오 콘테스트 (응모기간)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 8, location: "korea", category: "교육", date: "2025.08.18-09.01 (접수)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "온라인 (www.jvcon.org)" }, // 11월 결과발표 및 시상식은 별도 추가
-            { id: 40, title: "홋카이도에서 만나는 대전", description: "홋카이도 삿포로시와 자매도시 결연 15주년을 맞이하는 대전광역시와의 협력을 통해 대전 관광 홍보 세미나, 한국문화 체험 및 대전시 홍보 부스 운영", month: 8, location: "japan", category: "문화", date: "2025.08.20 (세미나), 08.23-24 (체험 부스)", host: "주삿포로대한민국총영사관", place: "삿포로 프린스호텔, 삿포로돔" },
-            { id: 41, title: "제21회 호쿠리쿠(일본)・한국경제교류회의", description: "한일 양국 지자체·기업의 경제 교류", month: 8, location: "japan", category: "교류", date: "2025.08.26", host: "호쿠리쿠 경제연합회·호쿠리쿠 환일본해 경제교류촉진협의회·일반사단법인 한일경제협회", place: "이시카와현 가나자와시" },
-            { id: 42, title: "스미노 하야토 피아노 리사이틀", description: "도쿄대 공대 출신, 클래식 비전공자로서 2021년 쇼팽 콩쿠르 세미 파이널에 오르며 화제를 모았던 스미노 하야토의 내한 리사이틀", month: 8, location: "korea", category: "공연", date: "2025.08.28", host: "㈜마스트미디어", place: "예술의전당 콘서트홀" },
+            { id: 31, title: "2025 케이팝 커버댄스 페스티벌 in Japan", description: "일본 현지인 대상 케이팝 커버댄스 경연대회로 케이팝 콘텐츠를 통한 한일간 우호적 문화교류를 긍정적으로 표현", date: "2025.08.02", host: "문화체육관광부", place: "쿨재팬파크오사카WW홀", location: "japan", category: "공연" },
+            { id: 32, title: "청소년 한일 음악교류회", description: "한일 양국 청소년이 오사카에서 만나 음악 교류 및 공연", date: "2025.08.03", host: "SPIELRAUM (슈필라움)", place: "오사카 이즈미시 커뮤니티센터 다목적홀", location: "japan", category: "공연" },
+            { id: 33, title: "조선통신사 네트워크 (쓰시마)", description: "이즈하라항 축제 특별공연, 조선통신사 행렬 재현, 친서 교환식", date: "2025.08.03-04", host: "부산문화재단", place: "쓰시마", location: "japan", category: "문화" },
+            { id: 33.1, title: "조선통신사 네트워크 (시모노세키)", description: "바칸축제, 조선통신사 행렬 재현, 문화교류공연, 국서교환식", date: "2025.08.23-24", host: "부산문화재단", place: "시모노세키", location: "japan", category: "문화" },
+            { id: 33.2, title: "조선통신사 네트워크 (시즈오카)", description: "조선통신사 행렬 재현", date: "2025.10.18-19", host: "부산문화재단", place: "시즈오카", location: "japan", category: "문화" },
+            { id: 34, title: "제29회 한일 청소년 하계 스포츠 교류 (한국 개최)", description: "한일 양국이 초중학생을 상호 파견하는 스포츠 교류", date: "2025.08.03-08", host: "공익재단법인 일본스포츠협회", place: "전라북도 (한국)", location: "korea", category: "스포츠" },
+            { id: 34.1, title: "제29회 한일 청소년 하계 스포츠 교류 (일본 개최)", description: "한일 양국이 초중학생을 상호 파견하는 스포츠 교류", date: "2025.08.17-22", host: "공익재단법인 일본스포츠협회", place: "기후현 (일본)", location: "japan", category: "스포츠" },
+            { id: 35, title: "미야기현 한일친선협회, 대한민국 민단 주최 볼링대회", description: "재외동포 가족 세대와 미야기현 한일친선협회 회원들 간 스포츠 교류", date: "2025.08.15", host: "재일본대한민국민단 미야기현 지방본부, 미야기현 한일친선협회", place: "볼 선샤인 센다이", location: "japan", category: "스포츠" },
+            { id: 36, title: "제4회 지적장애인 일한스포츠 교류프로그램", description: "양국 상호 파견에 의한 지적장애인 운동선수의 스포츠문화교류", date: "2025.08.15-08.19", host: "일반사단법인 전일본 지적장애인 스포츠협회", place: "도쿄 히가시구루메시", location: "japan", category: "스포츠" },
+            { id: 37, title: "조에쓰시 고교생 해외홈스테이 교류사업 (한국 목포시)", description: "조에쓰시 고교생의 한국·목포시에서의 홈스테이 체험, 학교 교류, 문화 체험", date: "2025.08.16-08.19", host: "조에쓰시", place: "목포시", location: "korea", category: "교류" },
+            { id: 38, title: "제33차 한일포럼 및 제11차 한일주니어포럼", description: "한국국제교류재단, 일본국제교류센터 공동 주최 사업으로 한일 양국이 새로운 협력관계를 모색하고 미래지향적인 양국관계 발전을 도모하는 연례 상설회의체", date: "2025.08.11 (주니어포럼), 08.18-20 (한일포럼)", host: "한국국제교류재단", place: "서울 그랜드하얏트호텔, 커뮤니티하우스 마실", location: "korea", category: "학술" },
+            { id: 39, title: "전국 고등학생 일본어비디오 콘테스트 (응모기간)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", date: "2025.08.18-09.01 (접수)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "온라인 (www.jvcon.org)", location: "korea", category: "교육" }, // 11월 결과발표 및 시상식은 별도 추가
+            { id: 40, title: "홋카이도에서 만나는 대전", description: "홋카이도 삿포로시와 자매도시 결연 15주년을 맞이하는 대전광역시와의 협력을 통해 대전 관광 홍보 세미나, 한국문화 체험 및 대전시 홍보 부스 운영", date: "2025.08.20 (세미나), 08.23-24 (체험 부스)", host: "주삿포로대한민국총영사관", place: "삿포로 프린스호텔, 삿포로돔", location: "japan", category: "문화" },
+            { id: 41, title: "제21회 호쿠리쿠(일본)・한국경제교류회의", description: "한일 양국 지자체·기업의 경제 교류", date: "2025.08.26", host: "호쿠리쿠 경제연합회·호쿠리쿠 환일본해 경제교류촉진협의회·일반사단법인 한일경제협회", place: "이시카와현 가나자와시", location: "japan", category: "교류" },
+            { id: 42, title: "스미노 하야토 피아노 리사이틀", description: "도쿄대 공대 출신, 클래식 비전공자로서 2021년 쇼팽 콩쿠르 세미 파이널에 오르며 화제를 모았던 스미노 하야토의 내한 리사이틀", date: "2025.08.28", host: "㈜마스트미디어", place: "예술의전당 콘서트홀", location: "korea", category: "공연" },
             // 9월 프로그램
-            { id: 43, title: "한일비지니스교류촉진사업 한일비지니스 프론티어교류・상담회", description: "한일 중소기업 간의 비즈니스 매칭을 통해, 새로운 비즈니스 기회 창출 및 상호 강점을 활용한 연계 강화", month: 9, location: "korea", category: "비즈니스", date: "2025.09.11", host: "일반재단법인 일한산업기술협력재단 / (재)한일산업・기술협력재단 (공동개최)", place: "서울 롯데호텔월드" },
-            { id: 44, title: "한국 고등학생방일단 (제1~2단)", description: "한국 고등학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", month: 9, location: "japan", category: "교류", date: "2025.09.14-09.20", host: "공익재단법인 일한문화교류기금", place: "도쿄도, 사이타마현, 사가현, 아이치현, 니가타현" },
-            { id: 45, title: "제29회 한일 스포츠 교류・성인 교환 교류", description: "한일 양국 운동선수 상호 파견 및 교류", month: 9, location: "japan", category: "스포츠", date: "2025.09.18-09.24", host: "공익재단법인 일본스포츠협회", place: "에히메현" },
-            { id: 46, title: "아름다운 청년 이수현 모임 2025", description: "의인 이수현 한일교류 캠프, 한일문화체험, 묘소 참배 등", month: 9, location: "korea", category: "교류", date: "2025.09.20", host: "부산한일문화교류협회", place: "부경대학교 동원장보고관 등" },
-            { id: 47, title: "제26회 고교생 일본어말하기대회", description: "제주도 고등학교의 일본어교육 지원, 양국 우호증진 등을 목적으로 한 말하기대회", month: 9, location: "korea", category: "교육", date: "2025.09.20", host: "주제주일본국총영사관, 제주특별자치도 한일친선협회, NPO법인 오이타현 해외교육지원기구", place: "제주상공회의소 국제회의장" },
-            { id: 48, title: "한일 국교정상화 60주년 기념 전국 합기도연무대회", description: "한일 양국 합기도 회원간 교류 및 우호 증진", month: 9, location: "korea", category: "스포츠", date: "2025.09.20-09.21", host: "사단법인 대한합기도회", place: "경희대학교 체육관" },
-            { id: 49, title: "아즈마 아키와 함께하는 영화음악 콘서트: 지브리& 월드무비 OST - 포항스테이지 M", description: "‘한일가왕전’, ‘한일톱텐쇼’를 통해 많은 사랑을 받고 있는 일본 보컬리스트 아즈마 아키와 클래식 기반의 연주 단체 스테이지엠 앙상블의 합동 무대", month: 9, location: "korea", category: "공연", date: "2025.09.21", host: "㈜마스트미디어", place: "포항 문화예술회관 대공연장" },
-            { id: 50, title: "홋카이도 한일 친선 만찬회", description: "민단 홋카이도 지방본부와 삿포로 일한우호친선협회가 함께 한국 요리와 음악을 즐기는 축하 공연 행사 진행", month: 9, location: "korea", category: "문화", date: "2025.09.22", host: "재일본대한민국민단 홋카이도 지방본부", place: "롯데콘서트홀" },
-            { id: 51, title: "한일 국교정상화 60주년 기념 음악회 <피아니스트 이경미 & 콰르텟 엑셀시오>", description: "일본 실내악의 중심에 있는 콰르텟 엑셀시오와 한국을 대표하는 피아니스트 이경미가 함께 하는 클래식 음악회", month: 9, location: "korea", category: "공연", date: "2025.09.22", host: "크레디아뮤직앤아티스트", place: "롯데콘서트홀" },
-            { id: 52, title: "2025 KOREA WEEK 대구시립교향악단 초청 공연", description: "히로시마와 자매도시인 대구광역시의 대구시립교향악단을 초청하여 공연 개최", month: 9, location: "japan", category: "공연", date: "2025.09.24", host: "주히로시마대한민국총영사관", place: "JMS아스텔프라자 대홀" },
-            { id: 53, title: "한일연구자교류협회 심포지엄", description: "양국 연구자 및 정부 관계자 발표, 한일교류 활성화 방안 패널 토의, 60주년 기념식", month: 9, location: "korea", category: "학술", date: "2025.09.26-09.27", host: "한일연구자교류협회, 일본학술진흥회(JSPS)", place: "서울대학교 의과대학 (연건캠퍼스) 대강당 301호" },
-            { id: 54, title: "제52회 일본소아영양소화기간장학회 학술집회", description: "연세대학교 고홍교수의 강연회 및 간담회", month: 9, location: "japan", category: "학술", date: "2025.09.26-09.28", host: "일반재단법인 일본소아영양소화기간장학회", place: "도치기현 라이트 큐브 우쓰노미야" },
-            { id: 55, title: "롯본기 아트 나이트 2025 KOREA Focus", description: "일본을 대표하는 미술 축제를 ‘한국‘을 주제로 개최하여 한국을 대표하는 현대미술작가 소개", month: 9, location: "japan", category: "예술", date: "2025.09.26-09.28", host: "롯본기아트나이트실행위원회 (조성 : 문화체육관광부, 주일한국문화원)", place: "롯본기 힐즈, 모리 미술관, 도쿄 미드타운 산토리 미술관 등 롯본기 일대" },
-            { id: 56, title: "주한공관선발 한국재팬리포터방일단", description: "한국 청소년・인플루언서를 초청해, 각지 시찰 및 지역주민과의 교류를 실시", month: 9, location: "japan", category: "교류", date: "2025.09.26-10.02", host: "공익재단법인 일한문화교류기금", place: "도쿄도, 이시카와현, 후쿠이현, 아이치현" },
-            { id: 57, title: "한일축제한마당", description: "2005년 ‘한일 우정의 해’ 지정 계기 시작된 한일 최대 행사로 양국에서 각각 문화 예술교류행사를 개최하여 우호 증진 기여", month: 9, location: "japan", category: "문화", date: "2025.09.27-09.28", host: "문화체육관광부", place: "고마자와 올림픽공원" },
-            { id: 58, title: "한일 우호 축구 교류회 in 나토리", description: "나토리시 축구 소년단, 도쿄 한국학교 축구부, 민단 미야기 어린이 풋살팀 간의 어린이 축구 행사", month: 9, location: "japan", category: "스포츠", date: "2025.09.28", host: "재일본대한민국민단 미야기현 지방본부, 나토리시 축구협회", place: "나토리시 쥬미츠카 공원 육상 경기장" },
-            { id: 59, title: "「한일대학국제작품전과 문화교류」「한일미래세미나 in 긴키대학(국제학부×문예학부 공동주최)」", description: "양국의 우정과 미래지향적 메시지를 주제로 한 작품 전시, 강연회, 세미나 등", month: 9, location: "japan", category: "예술", date: "2025.09.29-10.02", host: "긴키대학/경희대학/게이세이대학/사가미술대학・사가미술단기대학/주오사카한국문화원", place: "긴키대학 / 오사카 한국문화원" },
-            { id: 60, title: "제17회 간사이 한일경제 포럼", description: "2025년 스타트업 엑스포와 연계하여 한일 스타트업 현황 공유 및 상호 협력 방안 제시 (1부) 한일 정부 스타트업 지원 현황 공유, 한일 스타트업 발표 (2부) 상담회 및 교류회", month: 9, location: "japan", category: "비즈니스", date: "2025.09.30 or 10.01", host: "주오사카대한민국총영사관, 긴키경제산업국, KOTRA 오사카무역관", place: "호텔 뉴오타니 오사카" },
+            { id: 43, title: "한일비지니스교류촉진사업 한일비지니스 프론티어교류・상담회", description: "한일 중소기업 간의 비즈니스 매칭을 통해, 새로운 비즈니스 기회 창출 및 상호 강점을 활용한 연계 강화", date: "2025.09.11", host: "일반재단법인 일한산업기술협력재단 / (재)한일산업・기술협력재단 (공동개최)", place: "서울 롯데호텔월드", location: "korea", category: "비즈니스" },
+            { id: 44, title: "한국 고등학생방일단 (제1~2단)", description: "한국 고등학생을 초청해, 동세대 교류 및 일본 특유의 학문을 테마로 한 교류를 실시", date: "2025.09.14-09.20", host: "공익재단법인 일한문화교류기금", place: "도쿄도, 사이타마현, 사가현, 아이치현, 니가타현", location: "japan", category: "교류" },
+            { id: 45, title: "제29회 한일 스포츠 교류・성인 교환 교류", description: "한일 양국 운동선수 상호 파견 및 교류", date: "2025.09.18-09.24", host: "공익재단법인 일본스포츠협회", place: "에히메현", location: "japan", category: "스포츠" },
+            { id: 46, title: "아름다운 청년 이수현 모임 2025", description: "의인 이수현 한일교류 캠프, 한일문화체험, 묘소 참배 등", date: "2025.09.20", host: "부산한일문화교류협회", place: "부경대학교 동원장보고관 등", location: "korea", category: "교류" },
+            { id: 47, title: "제26회 고교생 일본어말하기대회", description: "제주도 고등학교의 일본어교육 지원, 양국 우호증진 등을 목적으로 한 말하기대회", date: "2025.09.20", host: "주제주일본국총영사관, 제주특별자치도 한일친선협회, NPO법인 오이타현 해외교육지원기구", place: "제주상공회의소 국제회의장", location: "korea", category: "교육" },
+            { id: 48, title: "한일 국교정상화 60주년 기념 전국 합기도연무대회", description: "한일 양국 합기도 회원간 교류 및 우호 증진", date: "2025.09.20-09.21", host: "사단법인 대한합기도회", place: "경희대학교 체육관", location: "korea", category: "스포츠" },
+            { id: 49, title: "아즈마 아키와 함께하는 영화음악 콘서트: 지브리& 월드무비 OST - 포항스테이지 M", description: "‘한일가왕전’, ‘한일톱텐쇼’를 통해 많은 사랑을 받고 있는 일본 보컬리스트 아즈마 아키와 클래식 기반의 연주 단체 스테이지엠 앙상블의 합동 무대", date: "2025.09.21", host: "㈜마스트미디어", place: "포항 문화예술회관 대공연장", location: "korea", category: "공연" },
+            { id: 50, title: "홋카이도 한일 친선 만찬회", description: "민단 홋카이도 지방본부와 삿포로 일한우호친선협회가 함께 한국 요리와 음악을 즐기는 축하 공연 행사 진행", date: "2025.09.22", host: "재일본대한민국민단 홋카이도 지방본부", place: "롯데콘서트홀", location: "korea", category: "문화" },
+            { id: 51, title: "한일 국교정상화 60주년 기념 음악회 <피아니스트 이경미 & 콰르텟 엑셀시오>", description: "일본 실내악의 중심에 있는 콰르텟 엑셀시오와 한국을 대표하는 피아니스트 이경미가 함께 하는 클래식 음악회", date: "2025.09.22", host: "크레디아뮤직앤아티스트", place: "롯데콘서트홀", location: "korea", category: "공연" },
+            { id: 52, title: "2025 KOREA WEEK 대구시립교향악단 초청 공연", description: "히로시마와 자매도시인 대구광역시의 대구시립교향악단을 초청하여 공연 개최", date: "2025.09.24", host: "주히로시마대한민국총영사관", place: "JMS아스텔프라자 대홀", location: "japan", category: "공연" },
+            { id: 53, title: "한일연구자교류협회 심포지엄", description: "양국 연구자 및 정부 관계자 발표, 한일교류 활성화 방안 패널 토의, 60주년 기념식", date: "2025.09.26-09.27", host: "한일연구자교류협회, 일본학술진흥회(JSPS)", place: "서울대학교 의과대학 (연건캠퍼스) 대강당 301호", location: "korea", category: "학술" },
+            { id: 54, title: "제52회 일본소아영양소화기간장학회 학술집회", description: "연세대학교 고홍교수의 강연회 및 간담회", date: "2025.09.26-09.28", host: "일반재단법인 일본소아영양소화기간장학회", place: "도치기현 라이트 큐브 우쓰노미야", location: "japan", category: "학술" },
+            { id: 55, title: "롯본기 아트 나이트 2025 KOREA Focus", description: "일본을 대표하는 미술 축제를 ‘한국‘을 주제로 개최하여 한국을 대표하는 현대미술작가 소개", date: "2025.09.26-09.28", host: "롯본기아트나이트실행위원회 (조성 : 문화체육관광부, 주일한국문화원)", place: "롯본기 힐즈, 모리 미술관, 도쿄 미드타운 산토리 미술관 등 롯본기 일대", location: "japan", category: "예술" },
+            { id: 56, title: "주한공관선발 한국재팬리포터방일단", description: "한국 청소년・인플루언서를 초청해, 각지 시찰 및 지역주민과의 교류를 실시", date: "2025.09.26-10.02", host: "공익재단법인 일한문화교류기금", place: "도쿄도, 이시카와현, 후쿠이현, 아이치현", location: "japan", category: "교류" },
+            { id: 57, title: "한일축제한마당", description: "2005년 ‘한일 우정의 해’ 지정 계기 시작된 한일 최대 행사로 양국에서 각각 문화 예술교류행사를 개최하여 우호 증진 기여", date: "2025.09.27-09.28", host: "문화체육관광부", place: "고마자와 올림픽공원", location: "japan", category: "문화" },
+            { id: 58, title: "한일 우호 축구 교류회 in 나토리", description: "나토리시 축구 소년단, 도쿄 한국학교 축구부, 민단 미야기 어린이 풋살팀 간의 어린이 축구 행사", date: "2025.09.28", host: "재일본대한민국민단 미야기현 지방본부, 나토리시 축구협회", place: "나토리시 쥬미츠카 공원 육상 경기장", location: "japan", category: "스포츠" },
+            { id: 59, title: "「한일대학국제작품전과 문화교류」「한일미래세미나 in 긴키대학(국제학부×문예학부 공동주최)」", description: "양국의 우정과 미래지향적 메시지를 주제로 한 작품 전시, 강연회, 세미나 등", date: "2025.09.29-10.02", host: "긴키대학/경희대학/게이세이대학/사가미술대학・사가미술단기대학/주오사카한국문화원", place: "긴키대학 / 오사카 한국문화원", location: "japan", category: "예술" },
+            { id: 60, title: "제17회 간사이 한일경제 포럼", description: "2025년 스타트업 엑스포와 연계하여 한일 스타트업 현황 공유 및 상호 협력 방안 제시 (1부) 한일 정부 스타트업 지원 현황 공유, 한일 스타트업 발표 (2부) 상담회 및 교류회", date: "2025.09.30 or 10.01", host: "주오사카대한민국총영사관, 긴키경제산업국, KOTRA 오사카무역관", place: "호텔 뉴오타니 오사카", location: "japan", category: "비즈니스" },
             // 10월 프로그램
-            { id: 61, title: "홋카이도 한일 우정의 노래 페스티벌", description: "홋카이도에 거주하는 한일 양국 국민들이 양국 노래를 부르고 교류하는 행사", month: 10, location: "japan", category: "문화", date: "2025.10.01", host: "주삿포로대한민국총영사관", place: "삿포로 홋카이도립 도민활동센터" },
-            { id: 62, title: "도호쿠 한인회의 한국전통의 추석 축제", description: "한국과 야마가타의 향토음식 제공 및 한국전통무용 등을 통한 문화교류", month: 10, location: "japan", category: "문화", date: "2025.10.05", host: "주일본 도호쿠한국인연압회", place: "야마가타현 고려관" },
-            { id: 63, title: "2025 대전광역시・삿포로시 자매도시 제휴15주년 기념 우호음악회 - 이웃나라 친구, 우리들의 사계 -", description: "대전시·삿포로 음악가들의 우호 기념 음악회", month: 10, location: "japan", category: "공연", date: "2025.10.10", host: "빛나는 젊은 삿포로 연주가 단체", place: "삿포로 문화예술교류센터" },
-            { id: 64, title: "2025 한일대학생교류사업 (방한)", description: "한일 차세대 간 소통 강화와 이해 제고를 위한 대학생 대표단 상호 파견", month: 10, location: "korea", category: "교류", date: "2025.10.10-10.18", host: "한국국제교류재단", place: "협의중" },
-            { id: 64.1, title: "2025 한일대학생교류사업 (방일)", description: "한일 차세대 간 소통 강화와 이해 제고를 위한 대학생 대표단 상호 파견", month: 11, location: "japan", category: "교류", date: "2025.11.05-11.13", host: "한국국제교류재단", place: "협의중" },
-            { id: 65, title: "2025 고베 한국노래‧댄스 콘테스트", description: "노래·댄스 부문 경연대회, 한국 초청 게스트 공연", month: 10, location: "japan", category: "공연", date: "2025.10.11", host: "주고베대한민국총영사관, 고베신문사", place: "고베신문사 마츠카타홀" },
-            { id: 66, title: "한일축제한마당 2025 in Seoul", description: "2005년 ‘한일 우정의 해’ 지정 계기 시작된 한일 최대 행사로 양국에서 각각 문화 예술교류행사를 개최하여 우호 증진 기여", month: 10, location: "korea", category: "문화", date: "2025.10.12", host: "사단법인 한일문화산업교류협회", place: "코엑스 전시장 1층 B홀" },
-            { id: 67, title: "한일 친선 페스티벌 in 센다이", description: "전통 사물놀이 및 일본 전통 북 공연, 한복 체험, 한일 노래자랑, 자매도시 광주광역시 창극단 초청 공연", month: 10, location: "japan", category: "문화", date: "2025.10.18-10.19", host: "재일본대한민국민단 미야기현 지방본부", place: "센다이 고토 다이 공원" },
-            { id: 68, title: "2025년도 한국・일본 청년친선교류사업", description: "일본 내각부-초빙과 파견, 청년간의 토론을 통해 일한 양국 청년의 상호 이해와 우호 촉진", month: 10, location: "japan", category: "교류", date: "2025.10.20-10.29", host: "일본 내각부", place: "일본" },
-            { id: 69, title: "길 위의 인문학 - 조선통신사의 발자취 -", description: "일본 내 조선통신사 관련 유적에 직접 방문하여 배우는 답사형 강연회", month: 10, location: "japan", category: "학술", date: "2025.10.25", host: "주일한국문화원", place: "시즈오카현 세이켄지, 삿타고개" },
-            { id: 70, title: "한일 우호친선「이키(壱岐) 섬」해양 플라스틱 쓰레기 청정작전과 생태관광대회", description: "해양 플라스틱 쓰레기 수집, 아트 작품 제작", month: 10, location: "japan", category: "환경", date: "2025.10.25-10.26", host: "이키(壱岐)유메 클럽", place: "나가사키현" },
-            { id: 71, title: "“시간을 가로지르는 예술의 다리” 전시", description: "고대 시기부터의 한일 간 예술적·문화적 교류를 이어가는 전시로, 한일 민화·서양화·일본화 작가들의 작품과 협업 작품을 전시", month: 10, location: "korea", category: "예술", date: "2025.10.28-11.04", host: "강남미술협회", place: "주일한국문화원 갤러리 MI" },
-            { id: 72, title: "한일 국교정상화 60주년 기념!「한국」에 매료되어! 니이 다카오 사진전＆강연회", description: "부산의 사진가와 함께 촬영한「한국」사진전 및「대마도와 한국&조선통신사」를 주제로 한 강연회", month: 10, location: "korea", category: "문화", date: "2025.10.30-11.12", host: "니이 다카오 (나가사키현 미술협회 명예회원)", place: "나가사키현 나가사키 시청" },
+            { id: 61, title: "홋카이도 한일 우정의 노래 페스티벌", description: "홋카이도에 거주하는 한일 양국 국민들이 양국 노래를 부르고 교류하는 행사", date: "2025.10.01", host: "주삿포로대한민국총영사관", place: "삿포로 홋카이도립 도민활동센터", location: "japan", category: "문화" },
+            { id: 62, title: "도호쿠 한인회의 한국전통의 추석 축제", description: "한국과 야마가타의 향토음식 제공 및 한국전통무용 등을 통한 문화교류", date: "2025.10.05", host: "주일본 도호쿠한국인연압회", place: "야마가타현 고려관", location: "japan", category: "문화" },
+            { id: 63, title: "2025 대전광역시・삿포로시 자매도시 제휴15주년 기념 우호음악회 - 이웃나라 친구, 우리들의 사계 -", description: "대전시·삿포로 음악가들의 우호 기념 음악회", date: "2025.10.10", host: "빛나는 젊은 삿포로 연주가 단체", place: "삿포로 문화예술교류센터", location: "japan", category: "공연" },
+            { id: 64, title: "2025 한일대학생교류사업 (방한)", description: "한일 차세대 간 소통 강화와 이해 제고를 위한 대학생 대표단 상호 파견", date: "2025.10.10-10.18", host: "한국국제교류재단", place: "협의중", location: "korea", category: "교류" },
+            { id: 64.1, title: "2025 한일대학생교류사업 (방일)", description: "한일 차세대 간 소통 강화와 이해 제고를 위한 대학생 대표단 상호 파견", date: "2025.11.05-11.13", host: "한국국제교류재단", place: "협의중", location: "japan", category: "교류" },
+            { id: 65, title: "2025 고베 한국노래‧댄스 콘테스트", description: "노래·댄스 부문 경연대회, 한국 초청 게스트 공연", date: "2025.10.11", host: "주고베대한민국총영사관, 고베신문사", place: "고베신문사 마츠카타홀", location: "japan", category: "공연" },
+            { id: 66, title: "한일축제한마당 2025 in Seoul", description: "2005년 ‘한일 우정의 해’ 지정 계기 시작된 한일 최대 행사로 양국에서 각각 문화 예술교류행사를 개최하여 우호 증진 기여", date: "2025.10.12", host: "사단법인 한일문화산업교류협회", place: "코엑스 전시장 1층 B홀", location: "korea", category: "문화" },
+            { id: 67, title: "한일 친선 페스티벌 in 센다이", description: "전통 사물놀이 및 일본 전통 북 공연, 한복 체험, 한일 노래자랑, 자매도시 광주광역시 창극단 초청 공연", date: "2025.10.18-10.19", host: "재일본대한민국민단 미야기현 지방본부", place: "센다이 고토 다이 공원", location: "japan", category: "문화" },
+            { id: 68, title: "2025년도 한국・일본 청년친선교류사업", description: "일본 내각부-초빙과 파견, 청년간의 토론을 통해 일한 양국 청년의 상호 이해와 우호 촉진", date: "2025.10.20-10.29", host: "일본 내각부", place: "일본", location: "japan", category: "교류" },
+            { id: 69, title: "길 위의 인문학 - 조선통신사의 발자취 -", description: "일본 내 조선통신사 관련 유적에 직접 방문하여 배우는 답사형 강연회", date: "2025.10.25", host: "주일한국문화원", place: "시즈오카현 세이켄지, 삿타고개", location: "japan", category: "학술" },
+            { id: 70, title: "한일 우호친선「이키(壱岐) 섬」해양 플라스틱 쓰레기 청정작전과 생태관광대회", description: "해양 플라스틱 쓰레기 수집, 아트 작품 제작", date: "2025.10.25-10.26", host: "이키(壱岐)유메 클럽", place: "나가사키현", location: "japan", category: "환경" },
+            { id: 71, title: "“시간을 가로지르는 예술의 다리” 전시", description: "고대 시기부터의 한일 간 예술적·문화적 교류를 이어가는 전시로, 한일 민화·서양화·일본화 작가들의 작품과 협업 작품을 전시", date: "2025.10.28-11.04", host: "강남미술협회", place: "주일한국문화원 갤러리 MI", location: "korea", category: "예술" },
+            { id: 72, title: "한일 국교정상화 60주년 기념!「한국」에 매료되어! 니이 다카오 사진전＆강연회", description: "부산의 사진가와 함께 촬영한「한국」사진전 및「대마도와 한국&조선통신사」를 주제로 한 강연회", date: "2025.10.30-11.12", host: "니이 다카오 (나가사키현 미술협회 명예회원)", place: "나가사키현 나가사키 시청", location: "korea", category: "문화" },
             // 11월 프로그램
-            { id: 73, title: "한국어 말하기대회 「함께 말해봐요 한국어」", description: "중고등학생 및 대학생, 일반 성인 한국어 학습자를 대상으로 하는 한국어 말하기 대회. 1인 스피치 부문 / 2인 1조 스킷 부문 / 자유발표 부문으로 구성", month: 11, location: "japan", category: "교육", date: "2025.11-2026.03", host: "주일한국문화원 각 지역 실행위원회", place: "주일한국문화원 및 히로사키, 도야마" },
-            { id: 74, title: "한일 수교 60주년 기념 연극 <야끼니꾸 드래곤>", description: "2008년 일본 신국립극장과 공동 제작한 연극 <야끼니꾸 드래곤>을 한일국교정상화 60주년을 맞아 한일 양국 협업으로 공연", month: 11, location: "korea", category: "공연", date: "2025.11.13-11.23", host: "예술의전당", place: "예술의전당 CJ 토월극장" },
-            { id: 75, title: "한·일(큐슈) 경제협력회의 2025", description: "경제협력 본회의, 제23회 환황해경제·기술교류회의(한일중 회의 병행 개최), 한일 비즈니스 상담회 및 산업시찰, 인프라 시설 시찰 등", month: 11, location: "korea", category: "비즈니스", date: "2025.11.18-11.21", host: "사단법인 한일경제협회", place: "호텔 ICC, 대전시 유성구 엑스포로" },
-            { id: 76, title: "2025 국제패션아트 초대전 - 한국패션의 울림: 전통에서 혁신으로", description: "한국과 일본의 전통 요소를 적용한 현대 패션 작품을 전시하고, 한일 문화 및 패션 교류의 장을 마련", month: 11, location: "japan", category: "예술", date: "2025.11.22-12.04", host: "사단법인 한국패션문화협회", place: "동경 문화학원 복식박물관" },
-            { id: 77, title: "미도리 바이올린 리사이틀", description: "1988년 안네 소피 무터, 정경화 등과 함께 타임지가 선정한 세계 5대 여자 바이올리니스트로 선정되었던 미도리의 내한 리사이틀", month: 11, location: "korea", category: "공연", date: "2025.11.23", host: "㈜마스트미디어", place: "예술의전당 콘서트홀" },
+            { id: 73, title: "한국어 말하기대회 「함께 말해봐요 한국어」", description: "중고등학생 및 대학생, 일반 성인 한국어 학습자를 대상으로 하는 한국어 말하기 대회. 1인 스피치 부문 / 2인 1조 스킷 부문 / 자유발표 부문으로 구성", date: "2025.11-2026.03", host: "주일한국문화원 각 지역 실행위원회", place: "주일한국문화원 및 히로사키, 도야마", location: "japan", category: "교육" },
+            { id: 74, title: "한일 수교 60주년 기념 연극 <야끼니꾸 드래곤>", description: "2008년 일본 신국립극장과 공동 제작한 연극 <야끼니꾸 드래곤>을 한일국교정상화 60주년을 맞아 한일 양국 협업으로 공연", month: 11, location: "korea", category: "공연", date: "2025.11.13-11.23", host: "예술의전당", place: "예술의전당 CJ 토월극장", location: "korea", category: "공연" },
+            { id: 75, title: "한·일(큐슈) 경제협력회의 2025", description: "경제협력 본회의, 제23회 환황해경제·기술교류회의(한일중 회의 병행 개최), 한일 비즈니스 상담회 및 산업시찰, 인프라 시설 시찰 등", month: 11, location: "korea", category: "비즈니스", date: "2025.11.18-11.21", host: "사단법인 한일경제협회", place: "호텔 ICC, 대전시 유성구 엑스포로", location: "korea", category: "비즈니스" },
+            { id: 76, title: "2025 국제패션아트 초대전 - 한국패션의 울림: 전통에서 혁신으로", description: "한국과 일본의 전통 요소를 적용한 현대 패션 작품을 전시하고, 한일 문화 및 패션 교류의 장을 마련", month: 11, location: "japan", category: "예술", date: "2025.11.22-12.04", host: "사단법인 한국패션문화협회", place: "동경 문화학원 복식박물관", location: "japan", category: "예술" },
+            { id: 77, title: "미도리 바이올린 리사이틀", description: "1988년 안네 소피 무터, 정경화 등과 함께 타임지가 선정한 세계 5대 여자 바이올리니스트로 선정되었던 미도리의 내한 리사이틀", month: 11, location: "korea", category: "공연", date: "2025.11.23", host: "㈜마스트미디어", place: "예술의전당 콘서트홀", location: "korea", category: "공연" },
             // 11월에 추가되는 11월 프로그램 (전국 고등학생 일본어비디오 콘테스트 결과발표 및 시상식)
             { id: 39.1, title: "전국 고등학생 일본어비디오 콘테스트 (결과발표)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 11, location: "korea", category: "교육", date: "2025.11월 (결과발표)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "온라인 (www.jvcon.org)" },
             { id: 39.2, title: "전국 고등학생 일본어비디오 콘테스트 (시상식)", description: "전국 고등학생 참가팀이 일본어로 제작한 비디오를 제출하고, 심사를 통해 시상식 진행", month: 11, location: "korea", category: "교육", date: "2025.11.29 (시상식)", host: "한일협회, 일본국제교류기금 서울문화센터", place: "서울글로벌센터 9층" },
@@ -281,7 +293,7 @@
             { id: 81, title: "한국어 말하기대회 「함께 말해봐요 한국어」 (계속)", description: "중고등학생 및 대학생, 일반 성인 한국어 학습자를 대상으로 하는 한국어 말하기 대회. 1인 스피치 부문 / 2인 1조 스킷 부문 / 자유발표 부문으로 구성", month: 12, location: "japan", category: "교육", date: "2025.11-2026.03", host: "주일한국문화원 각 지역 실행위원회", place: "주일한국문화원 및 히로사키, 도야마" },
             { id: 82, title: "2025 국제패션아트 초대전 - 한국패션의 울림: 전통에서 혁신으로 (계속)", description: "한국과 일본의 전통 요소를 적용한 현대 패션 작품을 전시하고, 한일 문화 및 패션 교류의 장을 마련", month: 12, location: "japan", category: "예술", date: "2025.11.22-12.04", host: "사단법인 한국패션문화협회", place: "동경 문화학원 복식박물관" },
             // 12월에 추가되는 12월 프로그램 (한일포토콘테스트 전시)
-            { id: 1008.1, title: "일한 국교정상화 60주년 기념사업 제12회 한일포토콘테스트 (전시)", description: "‘한일 양국의 매력’을 테마로 촬영한 사진을 응모하는 ‘한일포토콘테스트’ 수상작품 전시", month: 12, location: "korea", category: "전시", date: "2025.12-2026.01 (전시 예정)", host: "한일포토콘테스트 운영사무국", place: "김포국제공항 국제선터미널" },
+            { id: 1008.1, title: "일한 국교정상화 60주년 기념사업 제12회 한일포토콘테스트 (전시)", description: "‘한일 양국의 매력’을 테마로 촬영한 사진을 응모하는 ‘한일포토콘테스트’ 수상작품 전시", date: "2025.12-2026.01 (전시 예정)", host: "한일포토콘테스트 운영사무국", place: "김포국제공항 국제선터미널", location: "korea", category: "전시" },
         ];
 
         let currentFilters = {
@@ -300,10 +312,37 @@
             programListingsEl.innerHTML = '';
             let filteredPrograms = programs.filter(program => {
                 const matchesLocation = currentFilters.location === 'all' || program.location === currentFilters.location;
-                const matchesMonth = currentFilters.month === 'all' || program.month === parseInt(currentFilters.month);
                 const matchesCategory = currentFilters.category === 'all' || program.category === currentFilters.category;
+                
+                let matchesMonth = false;
+                if (currentFilters.month === 'all') {
+                    matchesMonth = true; // For "All Months", we don't filter by month here, deduplication handles it.
+                } else {
+                    const selectedMonth = parseInt(currentFilters.month);
+                    const programActiveMonths = getActiveMonths(program.date); // Get all active months for the program
+                    matchesMonth = programActiveMonths.includes(selectedMonth); // Check if the selected month is in the program's active months
+                }
+                
                 return matchesLocation && matchesMonth && matchesCategory;
             });
+
+            // Deduplication logic ONLY for "All Months" filter
+            if (currentFilters.month === 'all') {
+                const seenPrograms = new Set();
+                filteredPrograms = filteredPrograms.filter(program => {
+                    // Create a unique key based on title, host, and place (date might vary for continuous events)
+                    // This ensures that a single logical event spanning multiple months appears only once.
+                    // For programs like "2025년도 한국시장 미디어 및 인플루언서 초청사업" which are repeated with different IDs but same core info,
+                    // we need to ensure they are seen as one unique event.
+                    const uniqueKey = `${program.title}-${program.host}-${program.place}`; 
+                    if (seenPrograms.has(uniqueKey)) {
+                        return false; // Already seen, so filter out
+                    }
+                    seenPrograms.add(uniqueKey);
+                    return true; // Not seen, keep it
+                });
+            }
+
 
             if (filteredPrograms.length === 0) {
                 noResultsMessageEl.classList.remove('hidden');
